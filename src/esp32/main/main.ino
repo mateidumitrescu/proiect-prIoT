@@ -7,7 +7,7 @@
 #define FAN_PIN 19  // GPIO pin for fan control
 
 const char* ssid = "DIGIFIBRA-Ak6u";
-const char* password = "FfdHsYKFX6tA";
+const char* password = "TODO-password";
 const char* mqtt_server = "192.168.1.136";
 const int mqtt_port = 1883;
 const char* mqtt_topic_temp = "temperature";
