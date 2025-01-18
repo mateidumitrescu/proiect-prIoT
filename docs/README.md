@@ -22,6 +22,12 @@ Data: **10 Decembrie 2024**
   - [Vizualizare date](#vizualizare-date)
     - [Node-RED](#node-red)
       - [Noduri folosite:](#noduri-folosite)
+  - [Probleme Întâlnite și Soluții Implementate](#probleme-întâlnite-și-soluții-implementate)
+    - [Problema alimentării ventilatorului](#problema-alimentării-ventilatorului)
+    - [Soluția implementată: utilizarea unei plăci Arduino pentru alimentare](#soluția-implementată-utilizarea-unei-plăci-arduino-pentru-alimentare)
+  - [Cod pentru controlul ventilatorului](#cod-pentru-controlul-ventilatorului)
+  - [Rezultate și Concluzii](#rezultate-și-concluzii)
+  - [Concluzie](#concluzie)
 
 ---
 
@@ -111,3 +117,73 @@ Dashboard-ul este configurat pentru a afișa temperatura și umiditatea în timp
 - **MQTT In** - pentru datele de la senzori.
 - **Chart** - pentru graficele temperaturii și umidității.
 - **Notification** - pentru alerte.
+## Probleme Întâlnite și Soluții Implementate  
+În cadrul implementării proiectului, am întâmpinat o serie de provocări tehnice care au necesitat soluții adecvate pentru a asigura funcționarea corectă a sistemului. Una dintre principalele probleme identificate a fost legată de alimentarea ventilatorului, care nu putea fi acționat direct de ESP32 din cauza limitărilor de tensiune.  
+
+### Problema alimentării ventilatorului  
+Microcontrollerul ESP32 furnizează o tensiune de ieșire de **3.3V**, insuficientă pentru alimentarea ventilatorului utilizat în proiect. Deoarece majoritatea ventilatoarelor mici necesită o tensiune de **5V** sau mai mare pentru a funcționa eficient, a fost necesar să găsim o soluție pentru a alimenta corect acest component.  
+
+Inițial, am încercat să conectăm ventilatorul direct la ESP32, însă acesta nu a reușit să pornească, indicând o problemă de alimentare. Totodată, încercarea de a alimenta ventilatorul direct din pinii ESP32 ar fi putut duce la suprasolicitarea și deteriorarea microcontrollerului.  
+
+### Soluția implementată: utilizarea unei plăci Arduino pentru alimentare  
+Pentru a depăși această problemă, am decis să folosim o placă **Arduino** ca sursă intermediară de alimentare. Placa Arduino poate furniza o tensiune stabilă de **5V**, suficientă pentru funcționarea ventilatorului. Soluția implementată a constat în următorii pași:  
+
+1. **Alimentarea ventilatorului prin Arduino:** Am conectat ventilatorul la pinul de **5V** al plăcii Arduino pentru a asigura alimentarea corespunzătoare.  
+2. **Controlul ON/OFF al ventilatorului prin ESP32:** Deoarece ESP32 nu putea furniza suficient curent pentru a porni ventilatorul direct, am folosit un **tranzistor** pentru a controla alimentarea ventilatorului. Semnalul de control ON/OFF a fost trimis de la ESP32 către un pin digital al Arduino-ului, care la rândul său activa sau dezactiva ventilatorul.  
+3. **Conectarea ground-urilor:** Pentru a asigura un circuit corect și pentru ca semnalul de control să fie interpretat corect, am conectat **ground-ul (GND) ESP32** cu **ground-ul plăcii Arduino**. Această conexiune este esențială pentru a permite comunicarea corectă între cele două plăci.  
+
+---  
+
+## Cod pentru controlul ventilatorului  
+Pentru implementarea controlului ON/OFF al ventilatorului, am utilizat următorul cod pentru **ESP32**:  
+
+```cpp
+#define FAN_CONTROL_PIN 4
+
+void setup() {
+  pinMode(FAN_CONTROL_PIN, OUTPUT);
+  digitalWrite(FAN_CONTROL_PIN, LOW); // Ventilator oprit
+}
+
+void loop() {
+  digitalWrite(FAN_CONTROL_PIN, HIGH); // Pornire ventilator
+  delay(5000); // Funcționează 5 secunde
+  digitalWrite(FAN_CONTROL_PIN, LOW); // Oprire ventilator
+  delay(5000); // Pauză 5 secunde
+}
+```
+
+Pentru **placa Arduino**, am folosit următorul cod pentru a primi semnalul de la ESP32 și pentru a comuta starea ventilatorului:  
+
+```cpp
+#define ESP_SIGNAL_PIN 7
+#define FAN_RELAY_PIN 9
+
+void setup() {
+  pinMode(ESP_SIGNAL_PIN, INPUT);
+  pinMode(FAN_RELAY_PIN, OUTPUT);
+  digitalWrite(FAN_RELAY_PIN, LOW);
+}
+
+void loop() {
+  int signal = digitalRead(ESP_SIGNAL_PIN);
+  if (signal == HIGH) {
+    digitalWrite(FAN_RELAY_PIN, HIGH); // Ventilator pornit
+  } else {
+    digitalWrite(FAN_RELAY_PIN, LOW); // Ventilator oprit
+  }
+}
+```
+
+---  
+
+## Rezultate și Concluzii  
+Prin implementarea acestei soluții, am reușit să controlăm ventilatorul utilizând **ESP32**, în ciuda limitărilor de tensiune. Utilizarea unei plăci **Arduino** pentru alimentare a oferit stabilitatea necesară, iar conectarea **ground-urilor** a permis o comunicare corectă între cele două plăci.  
+
+Această metodă poate fi extinsă pentru a controla și alte dispozitive care necesită o tensiune mai mare decât cea oferită de **ESP32**.  
+
+---  
+
+## Concluzie  
+Această etapă a proiectului a stabilit baza arhitecturală și a realizat prototipul pentru transmiterea și vizualizarea datelor. În etapele viitoare, vom explora integrarea unor noi funcționalități și optimizări pentru sistemul de monitorizare.  
+
